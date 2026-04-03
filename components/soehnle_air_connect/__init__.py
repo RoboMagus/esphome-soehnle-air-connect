@@ -11,6 +11,7 @@ from esphome.components import (
 
 from esphome.const import (
     STATE_CLASS_MEASUREMENT,
+    CONF_DEVICE_ID,
     CONF_BEEPER,
     CONF_FAN_MODE,
     CONF_FILTER,
@@ -67,6 +68,21 @@ DEFAULT_NAME = "AC500"
 TEMP_PLACEHOLDER = "__TEMP__"
 ENTITY_DEFAULT = {CONF_NAME: TEMP_PLACEHOLDER}
 
+ENTITIES = {
+    CONF_FILTER: "filter",
+    CONF_PM_2_5: "pm2.5",
+    CONF_TEMPERATURE: "temperature",
+    CONF_CONNECTED: "connected",
+    CONF_POWER: "power",
+    CONF_AUTO: "auto",
+    CONF_BEEPER: "beeper",
+    CONF_UVC: "UV-C",
+    CONF_FAN_MODE: "fan mode",
+    CONF_TIMER: "timer",
+    CONF_RAW: "raw",
+    CONF_POWER_SENSOR: "power estimate",
+}
+
 soehnle_air_connect_ns = cg.esphome_ns.namespace("soehnle_air_connect")
 Soehnle_AC500 = soehnle_air_connect_ns.class_(
     "Soehnle_AC500", cg.Component, ble_client.BLEClientNode
@@ -87,31 +103,13 @@ def fill_entity_defaults(config):
     #     f"Config: \n{config}"
     # )
     base_name = config.get(CONF_NAME)
+    base_device_id = config.get(CONF_DEVICE_ID)
 
-    if config[CONF_FILTER].get(CONF_NAME) == TEMP_PLACEHOLDER:
-        config[CONF_FILTER][CONF_NAME] = f"{base_name} filter"
-    if config[CONF_PM_2_5].get(CONF_NAME) == TEMP_PLACEHOLDER:
-        config[CONF_PM_2_5][CONF_NAME] = f"{base_name} pm2.5"
-    if config[CONF_TEMPERATURE].get(CONF_NAME) == TEMP_PLACEHOLDER:
-        config[CONF_TEMPERATURE][CONF_NAME] = f"{base_name} temperature"
-    if config[CONF_CONNECTED].get(CONF_NAME) == TEMP_PLACEHOLDER:
-        config[CONF_CONNECTED][CONF_NAME] = f"{base_name} connected"
-    if config[CONF_POWER].get(CONF_NAME) == TEMP_PLACEHOLDER:
-        config[CONF_POWER][CONF_NAME] = f"{base_name} power"
-    if config[CONF_AUTO].get(CONF_NAME) == TEMP_PLACEHOLDER:
-        config[CONF_AUTO][CONF_NAME] = f"{base_name} auto"
-    if config[CONF_BEEPER].get(CONF_NAME) == TEMP_PLACEHOLDER:
-        config[CONF_BEEPER][CONF_NAME] = f"{base_name} beeper"
-    if config[CONF_UVC].get(CONF_NAME) == TEMP_PLACEHOLDER:
-        config[CONF_UVC][CONF_NAME] = f"{base_name} UV-C"
-    if config[CONF_FAN_MODE].get(CONF_NAME) == TEMP_PLACEHOLDER:
-        config[CONF_FAN_MODE][CONF_NAME] = f"{base_name} fan mode"
-    if config[CONF_TIMER].get(CONF_NAME) == TEMP_PLACEHOLDER:
-        config[CONF_TIMER][CONF_NAME] = f"{base_name} timer"
-    if config[CONF_RAW].get(CONF_NAME) == TEMP_PLACEHOLDER:
-        config[CONF_RAW][CONF_NAME] = f"{base_name} raw"
-    if config[CONF_POWER_SENSOR].get(CONF_NAME) == TEMP_PLACEHOLDER:
-        config[CONF_POWER_SENSOR][CONF_NAME] = f"{base_name} power estimate"
+    for entity, name in ENTITIES.items():
+        if config[entity].get(CONF_NAME) == TEMP_PLACEHOLDER:
+            config[entity][CONF_NAME] = f"{base_name} {name}"
+        if base_device_id and not config[entity].get(CONF_DEVICE_ID):
+            config[entity][CONF_DEVICE_ID] = base_device_id
 
     return config
 
@@ -121,6 +119,7 @@ CONFIG_SCHEMA = cv.All(
         {
             cv.GenerateID(): cv.declare_id(Soehnle_AC500),
             cv.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
+            cv.Optional(CONF_DEVICE_ID): cv.sub_device_id,
             cv.Optional(CONF_FILTER, default=ENTITY_DEFAULT): sensor.sensor_schema(
                 unit_of_measurement=UNIT_PERCENT,
                 icon=ICON_FILTER,
