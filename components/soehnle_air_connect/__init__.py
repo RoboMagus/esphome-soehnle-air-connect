@@ -212,22 +212,18 @@ CONFIG_SCHEMA = cv.All(
             ),
             cv.Optional(
                 CONF_FAN_MODE, default=ENTITY_DEFAULT
-            ): select.SELECT_SCHEMA.extend(
+            ): select.select_schema(DeviceSelect, icon=ICON_FAN_MODE).extend(
                 {
-                    cv.GenerateID(): cv.declare_id(DeviceSelect),
                     cv.Optional(CONF_ENABLED, default=True): cv.boolean,
                     cv.Optional(CONF_NAME, default=TEMP_PLACEHOLDER): cv.string,
-                    cv.Optional(CONF_ICON, default=ICON_FAN_MODE): cv.icon,
                 }
             ),
             cv.Optional(
                 CONF_TIMER, default=ENTITY_DEFAULT
-            ): select.SELECT_SCHEMA.extend(
+            ): select.select_schema(DeviceSelect, icon=ICON_TIMER).extend(
                 {
-                    cv.GenerateID(): cv.declare_id(DeviceSelect),
                     cv.Optional(CONF_ENABLED, default=True): cv.boolean,
                     cv.Optional(CONF_NAME, default=TEMP_PLACEHOLDER): cv.string,
-                    cv.Optional(CONF_ICON, default=ICON_TIMER): cv.icon,
                 }
             ),
             cv.Optional(
