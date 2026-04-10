@@ -1,10 +1,6 @@
 #include "soehnle_ac500.h"
 #include "esphome/core/helpers.h"
 
-#ifdef USE_OTA
-#include "esphome/components/ota/ota_backend.h"
-#endif
-
 #ifdef USE_ESP32
 
 namespace esphome {
@@ -30,22 +26,24 @@ void Soehnle_AC500::setup() {
     this->connected_sensor_->state = false;
   }
 
-#ifdef USE_OTA
-  ota::get_global_ota_callback()->add_on_state_callback(
-    [this](ota::OTAState state, float progress, uint8_t error, ota::OTAComponent *comp) {
-      if (state == ota::OTA_STARTED) {
-        ESP_LOGW(TAG, "Disable & Disconnect for OTA");
-        this->parent()->disconnect();
-        this->parent()->set_enabled(false);
-      } else if (state == ota::OTA_ERROR) {
-        this->parent()->set_enabled(true);
-        this->parent()->connect();
-      }
-    });
+#ifdef USE_OTA_STATE_LISTENER
+  ota::get_global_ota_callback()->add_global_state_listener(this);
 #endif
-
   // ToDo: Initial update for all sensors in case device won't connect...
 }
+
+#ifdef USE_OTA_STATE_LISTENER
+void Soehnle_AC500::on_ota_global_state(ota::OTAState state, float progress, uint8_t error, ota::OTAComponent *comp) {
+  if (state == ota::OTA_STARTED) {
+    ESP_LOGW(TAG, "Disable & Disconnect for OTA");
+    this->parent()->disconnect();
+    this->parent()->set_enabled(false);
+  } else if (state == ota::OTA_ERROR) {
+    this->parent()->set_enabled(true);
+    this->parent()->connect();
+  }
+}
+#endif
 
 void Soehnle_AC500::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if,
                                         esp_ble_gattc_cb_param_t *param) {
@@ -69,14 +67,17 @@ void Soehnle_AC500::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
     }
 
     case ESP_GATTC_SEARCH_CMPL_EVT: {
+      char serv_uuid_buf[esp32_ble::UUID_STR_LEN];
+      char char_uuid_buf[esp32_ble::UUID_STR_LEN];
       // this->read_handle_ = 0;
       // this->write_handle_ = 0;
 
       // Retrieve read characteristic handle:
       auto *read_chr = this->parent()->get_characteristic(service_uuid_, read_characteristic_uuid_);
       if (read_chr == nullptr) {
-        ESP_LOGW(TAG, "No sensor read characteristic found at service %s char %s", service_uuid_.to_string().c_str(),
-                 read_characteristic_uuid_.to_string().c_str());
+        ESP_LOGW(TAG, "No sensor read characteristic found at service %s char %s", 
+                 service_uuid_.to_str(serv_uuid_buf),
+                 read_characteristic_uuid_.to_str(char_uuid_buf));
       } else {
         this->read_handle_ = read_chr->handle;
 
@@ -90,8 +91,9 @@ void Soehnle_AC500::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
 
       auto *r3_chr = this->parent()->get_characteristic(service_uuid_, r3_characteristic_uuid_);
       if (r3_chr == nullptr) {
-        ESP_LOGW(TAG, "No sensor read characteristic found at service %s char %s", service_uuid_.to_string().c_str(),
-                 read_characteristic_uuid_.to_string().c_str());
+        ESP_LOGW(TAG, "No sensor read characteristic found at service %s char %s", 
+                 service_uuid_.to_str(serv_uuid_buf),
+                 read_characteristic_uuid_.to_str(char_uuid_buf));
       } else {
         this->r3_handle_ = r3_chr->handle;
 
@@ -106,8 +108,9 @@ void Soehnle_AC500::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
       // Retrieve write characteristic handle:
       auto *write_chr = this->parent()->get_characteristic(service_uuid_, write_characteristic_uuid_);
       if (write_chr == nullptr) {
-        ESP_LOGW(TAG, "No sensor write characteristic found at service %s char %s", service_uuid_.to_string().c_str(),
-                 write_characteristic_uuid_.to_string().c_str());
+        ESP_LOGW(TAG, "No sensor write characteristic found at service %s char %s", 
+                 service_uuid_.to_str(serv_uuid_buf),
+                 write_characteristic_uuid_.to_str(char_uuid_buf));
       } else {
         this->write_handle_ = write_chr->handle;
         this->write_chr_props = write_chr->properties;
@@ -222,10 +225,10 @@ void Soehnle_AC500::parseLiveData(uint8_t *bArr, uint16_t value_len) {
   }
 
   // Publish Selects
-  if (this->fanspeed_select_ != nullptr && this->fanspeed_select_->state != fanSpeed_str) {
+  if (this->fanspeed_select_ != nullptr && this->fanspeed_select_->current_option() != fanSpeed_str) {
     this->fanspeed_select_->publish_state(fanSpeed_str);
   }
-  if (this->timer_select_ != nullptr && this->timer_select_->state != timer_str) {
+  if (this->timer_select_ != nullptr && this->timer_select_->current_option() != timer_str) {
     this->timer_select_->publish_state(timer_str);
   }
 
@@ -349,7 +352,8 @@ void Soehnle_AC500::write_command_(char b1, char b2, char b3, char b4) {
     write_type = ESP_GATT_WRITE_TYPE_NO_RSP;
     ESP_LOGV(TAG, "Write type: ESP_GATT_WRITE_TYPE_NO_RSP");
   } else {
-    ESP_LOGE(TAG, "Characteristic %s does not allow writing", this->write_characteristic_uuid_.to_string().c_str());
+    char uuid_buf[esp32_ble::UUID_STR_LEN];
+    ESP_LOGE(TAG, "Characteristic %s does not allow writing", this->write_characteristic_uuid_.to_str(uuid_buf));
     return;
   }
 

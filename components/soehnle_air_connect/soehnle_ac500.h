@@ -8,6 +8,9 @@
 #include "esphome/components/binary_sensor/binary_sensor.h"
 #include "esphome/components/ble_client/ble_client.h"
 #include "esphome/components/esp32_ble_tracker/esp32_ble_tracker.h"
+#ifdef USE_OTA_STATE_LISTENER
+#include "esphome/components/ota/ota_backend.h"
+#endif
 #include "esphome/components/select/select.h"
 #include "esphome/components/sensor/sensor.h"
 #include "esphome/components/switch/switch.h"
@@ -49,12 +52,20 @@ class DeviceSelect : public select::Select, public Component {
   std::function<void(const std::string &)> control_impl_;
 };
 
-class Soehnle_AC500 : public Component, public ble_client::BLEClientNode {
+class Soehnle_AC500 : public Component, 
+#ifdef USE_OTA_STATE_LISTENER
+                      public ota::OTAGlobalStateListener,
+#endif
+                      public ble_client::BLEClientNode {
  public:
   Soehnle_AC500();
 
   void dump_config() override;
   void setup() override;
+
+#ifdef USE_OTA_STATE_LISTENER
+  void on_ota_global_state(ota::OTAState state, float progress, uint8_t error, ota::OTAComponent *comp) override;
+#endif
 
   void gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if,
                            esp_ble_gattc_cb_param_t *param) override;
