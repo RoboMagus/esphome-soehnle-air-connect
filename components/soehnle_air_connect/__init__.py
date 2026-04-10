@@ -65,8 +65,6 @@ FAN_MODE_OPTIONS = ["low", "medium", "high", "turbo"]
 TIMER_OPTIONS = ["off", "2hours", "4hours", "8hours"]
 
 DEFAULT_NAME = "AC500"
-TEMP_PLACEHOLDER = "__TEMP__"
-ENTITY_DEFAULT = {CONF_NAME: TEMP_PLACEHOLDER}
 
 ENTITIES = {
     CONF_FILTER: "filter",
@@ -106,7 +104,9 @@ def fill_entity_defaults(config):
     base_device_id = config.get(CONF_DEVICE_ID)
 
     for entity, name in ENTITIES.items():
-        if config[entity].get(CONF_NAME) == TEMP_PLACEHOLDER:
+        if not config.get(entity):
+            config[entity] = {}
+        if not config[entity].get(CONF_NAME):
             config[entity][CONF_NAME] = f"{base_name} {name}"
         if base_device_id and not config[entity].get(CONF_DEVICE_ID):
             config[entity][CONF_DEVICE_ID] = base_device_id
@@ -114,13 +114,13 @@ def fill_entity_defaults(config):
     return config
 
 
-CONFIG_SCHEMA = cv.All(
+SAC_SCHEMA = cv.All(
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(Soehnle_AC500),
             cv.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
             cv.Optional(CONF_DEVICE_ID): cv.sub_device_id,
-            cv.Optional(CONF_FILTER, default=ENTITY_DEFAULT): sensor.sensor_schema(
+            cv.Optional(CONF_FILTER): sensor.sensor_schema(
                 unit_of_measurement=UNIT_PERCENT,
                 icon=ICON_FILTER,
                 accuracy_decimals=2,
@@ -128,10 +128,9 @@ CONFIG_SCHEMA = cv.All(
             ).extend(
                 {
                     cv.Optional(CONF_ENABLED, default=True): cv.boolean,
-                    cv.Optional(CONF_NAME, default=TEMP_PLACEHOLDER): cv.string,
                 }
             ),
-            cv.Optional(CONF_PM_2_5, default=ENTITY_DEFAULT): sensor.sensor_schema(
+            cv.Optional(CONF_PM_2_5): sensor.sensor_schema(
                 unit_of_measurement=UNIT_MICROGRAMS_PER_CUBIC_METER,
                 icon=ICON_GRAIN,
                 accuracy_decimals=2,
@@ -140,10 +139,9 @@ CONFIG_SCHEMA = cv.All(
             ).extend(
                 {
                     cv.Optional(CONF_ENABLED, default=True): cv.boolean,
-                    cv.Optional(CONF_NAME, default=TEMP_PLACEHOLDER): cv.string,
                 }
             ),
-            cv.Optional(CONF_TEMPERATURE, default=ENTITY_DEFAULT): sensor.sensor_schema(
+            cv.Optional(CONF_TEMPERATURE): sensor.sensor_schema(
                 unit_of_measurement=UNIT_CELSIUS,
                 accuracy_decimals=2,
                 device_class=DEVICE_CLASS_TEMPERATURE,
@@ -151,11 +149,10 @@ CONFIG_SCHEMA = cv.All(
             ).extend(
                 {
                     cv.Optional(CONF_ENABLED, default=True): cv.boolean,
-                    cv.Optional(CONF_NAME, default=TEMP_PLACEHOLDER): cv.string,
                 }
             ),
             cv.Optional(
-                CONF_POWER_SENSOR, default=ENTITY_DEFAULT
+                CONF_POWER_SENSOR
             ): sensor.sensor_schema(
                 unit_of_measurement=UNIT_WATT,
                 accuracy_decimals=1,
@@ -164,83 +161,78 @@ CONFIG_SCHEMA = cv.All(
             ).extend(
                 {
                     cv.Optional(CONF_ENABLED, default=False): cv.boolean,
-                    cv.Optional(CONF_NAME, default=TEMP_PLACEHOLDER): cv.string,
                 }
             ),
             cv.Optional(
-                CONF_CONNECTED, default=ENTITY_DEFAULT
+                CONF_CONNECTED
             ): binary_sensor.binary_sensor_schema(
                 icon=ICON_CONNECT,
                 device_class=DEVICE_CLASS_CONNECTIVITY,
             ).extend(
                 {
                     cv.Optional(CONF_ENABLED, default=True): cv.boolean,
-                    cv.Optional(CONF_NAME, default=TEMP_PLACEHOLDER): cv.string,
                 }
             ),
-            cv.Optional(CONF_POWER, default=ENTITY_DEFAULT): switch.switch_schema(
+            cv.Optional(CONF_POWER): switch.switch_schema(
                 DeviceSwitch, icon=ICON_POWER
             ).extend(
                 {
                     cv.Optional(CONF_ENABLED, default=True): cv.boolean,
-                    cv.Optional(CONF_NAME, default=TEMP_PLACEHOLDER): cv.string,
                 }
             ),
-            cv.Optional(CONF_AUTO, default=ENTITY_DEFAULT): switch.switch_schema(
+            cv.Optional(CONF_AUTO): switch.switch_schema(
                 DeviceSwitch, icon=ICON_AUTO
             ).extend(
                 {
                     cv.Optional(CONF_ENABLED, default=True): cv.boolean,
-                    cv.Optional(CONF_NAME, default=TEMP_PLACEHOLDER): cv.string,
                 }
             ),
-            cv.Optional(CONF_BEEPER, default=ENTITY_DEFAULT): switch.switch_schema(
+            cv.Optional(CONF_BEEPER): switch.switch_schema(
                 DeviceSwitch, icon=ICON_BEEPER, entity_category=ENTITY_CATEGORY_CONFIG
             ).extend(
                 {
                     cv.Optional(CONF_ENABLED, default=False): cv.boolean,
-                    cv.Optional(CONF_NAME, default=TEMP_PLACEHOLDER): cv.string,
                 }
             ),
-            cv.Optional(CONF_UVC, default=ENTITY_DEFAULT): switch.switch_schema(
+            cv.Optional(CONF_UVC): switch.switch_schema(
                 DeviceSwitch, icon=ICON_LIGHT
             ).extend(
                 {
                     cv.Optional(CONF_ENABLED, default=True): cv.boolean,
-                    cv.Optional(CONF_NAME, default=TEMP_PLACEHOLDER): cv.string,
                 }
             ),
             cv.Optional(
-                CONF_FAN_MODE, default=ENTITY_DEFAULT
+                CONF_FAN_MODE
             ): select.select_schema(DeviceSelect, icon=ICON_FAN_MODE).extend(
                 {
                     cv.Optional(CONF_ENABLED, default=True): cv.boolean,
-                    cv.Optional(CONF_NAME, default=TEMP_PLACEHOLDER): cv.string,
                 }
             ),
             cv.Optional(
-                CONF_TIMER, default=ENTITY_DEFAULT
+                CONF_TIMER
             ): select.select_schema(DeviceSelect, icon=ICON_TIMER).extend(
                 {
                     cv.Optional(CONF_ENABLED, default=True): cv.boolean,
-                    cv.Optional(CONF_NAME, default=TEMP_PLACEHOLDER): cv.string,
                 }
             ),
             cv.Optional(
-                CONF_RAW, default=ENTITY_DEFAULT
+                CONF_RAW
             ): text_sensor.text_sensor_schema(
                 icon="mdi:hexadecimal", entity_category=ENTITY_CATEGORY_DIAGNOSTIC
             ).extend(
                 {
                     cv.Optional(CONF_ENABLED, default=False): cv.boolean,
-                    cv.Optional(CONF_NAME, default=TEMP_PLACEHOLDER): cv.string,
                 }
             ),
         }
     ).extend(ble_client.BLE_CLIENT_SCHEMA),
-    fill_entity_defaults,
 )
 
+def _config_schema(config):
+    config = fill_entity_defaults(config)
+    return SAC_SCHEMA(config)
+
+CONFIG_SCHEMA = _config_schema
 
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
