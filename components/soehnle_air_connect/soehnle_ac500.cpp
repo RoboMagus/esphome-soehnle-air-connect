@@ -203,8 +203,11 @@ void Soehnle_AC500::parseLiveData(uint8_t *bArr, uint16_t value_len) {
   if (this->temperature_sensor_ != nullptr && this->temperature_sensor_->get_raw_state() != temperatureValue) {
     this->temperature_sensor_->publish_state(temperatureValue);
   }
-  if (this->particulate_sensor_ != nullptr && this->particulate_sensor_->get_raw_state() != pmValue && isPowerOn) {
-    this->particulate_sensor_->publish_state(pmValue);
+  if (this->particulate_sensor_ != nullptr){
+    float old = this->particulate_sensor_->get_raw_state();
+    if(old != pmValue && (std::isfinite(old) || std::isfinite(pmValue))) {
+      this->particulate_sensor_->publish_state(pmValue);
+    }
   }
   if (this->raw_sensor_ != nullptr && this->raw_sensor_->get_raw_state() != rawValue) {
     this->raw_sensor_->publish_state(rawValue);
